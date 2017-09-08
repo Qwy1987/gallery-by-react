@@ -1,20 +1,16 @@
 require('normalize.css/normalize.css');
 require('styles/App.scss');
 
-import React from 'react';
+import React, {Component}from 'react';
 import ReactDOM from 'react-dom';
 
 //获取图片数据
 let imageDatas = require('../data/imageDatas.json');
+//将图片名称信息转换为图片路径信息
+imageDatas = imageDatas.map((currValue) => {
+  return {...currValue, imageURL: require('../images/' + currValue.fileName)}
+});
 
-//利用匿名函数自调将图片名称信息转换为图片路径信息
-imageDatas = (function getImageURL(imageDataArr) {
-  for (let i = 0, l = imageDataArr.length; i < l; i++) {
-    let singleImageData = imageDataArr[i];
-    imageDataArr[i] = {...singleImageData, imageURL: require('../images/' + singleImageData.fileName)};
-  }
-  return imageDataArr;
-})(imageDatas);
 
 //生成区间内的一个随机数
 function getRangeRandom(low, high) {
@@ -28,7 +24,7 @@ function get30DegRandom() {
 
 //构建单个图片的组件结构类
 //注意stateless component can not use refs
-class ImgFigure extends React.Component {
+class ImgFigure extends Component {
   constructor(props) {
     super(props);
     this.handleClick = this.handleClick.bind(this);
@@ -81,7 +77,7 @@ class ImgFigure extends React.Component {
 }
 
 //控制组件
-class ControllerUnit extends React.Component {
+class ControllerUnit extends Component {
   constructor(props) {
     super(props);
     this.handleClick = this.handleClick.bind(this);
@@ -118,13 +114,21 @@ class ControllerUnit extends React.Component {
 }
 
 //构建主组件AppComponent 他将包含所有其他组件
-class AppComponent extends React.Component {
+class AppComponent extends Component {
 
   constructor(props) {
     //当且仅当使用了extends关键字创建了一个class时，必须调用super()
     // super()相当于创建了一个对象，且该对象作为context调用extends所指向的函数，这个对象成为constructor的context
     //super()的调用必须出现在第一个this之前 否则报this is not defined的ReferenceError
     super(props);
+    let imgsArrangeArr = imageDatas.map(
+      () => ({
+        pos: {left: 0, top: 0},
+        rotate: 0,
+        isInverse: false,
+        isCenter: false
+      })
+    );
     this.state = {
       centerPos: {   //中心图片的位置信息
         left: 0,
@@ -139,31 +143,12 @@ class AppComponent extends React.Component {
         x: [0, 0],
         topY: [0, 0]
       },
-      imgsArrangeArr: [
-        /*
-         {
-         pos: {
-         left: '0',
-         top: '0'
-         },
-         rotate: 0,    // 旋转角度
-         isInverse: false,    // 图片正反面
-         isCenter: false,    // 图片是否居中
-         }     */
-      ]
+      imgsArrangeArr
     };
     //为该类所有的自定义方法绑定this
-    for (let key in this) {
-      //返回直接定义在对象上的可枚举的属性
-      if (this.hasOwnProperty(key)) {
-        const method = this[key];
-        //返回自定义属性中类型为function的属性
-        if (method instanceof Function) {
-          //绑定this
-          this[key] = this[key].bind(this);
-        }
-      }
-    }
+    ['inverse', 'center', 'reArrange'].forEach((currValue) => {
+      this[currValue] = this[currValue].bind(this);
+    });
   }
 
   /*
@@ -261,7 +246,6 @@ class AppComponent extends React.Component {
       imgsArrangeArr.splice(topImgSpliceIndex, 0, imgsArrangeTopArr[0]);
     }
     imgsArrangeArr.splice(centerIndex, 0, imgsArrangeCenterArr[0]);
-
     //重置state 驱动渲染
     this.setState({
       imgsArrangeArr
@@ -311,21 +295,11 @@ class AppComponent extends React.Component {
     let imgFigures = [],//存储图片组件
       controllerUnits = []; //存储控制器组件
     //遍历图片数据数组imgsArrangeArr
-    imageDatas.forEach(function (currValue, index) {
-      if (!this.state.imgsArrangeArr[index]) {
-        this.state.imgsArrangeArr[index] = {
-          pos: {
-            left: 0,
-            top: 0
-          },
-          rotate: 0,
-          isInverse: false,
-          isCenter: false
-        }
-      }
+    imageDatas.forEach((currValue, index) => {
       //填充ImgFigure组件并且追加到imgFigures数组中
       //数组数据必须增加key属性
       const {pos, rotate, isInverse, isCenter}=  this.state.imgsArrangeArr[index];
+
       imgFigures.push(<ImgFigure
         {...currValue}
         key={index}
@@ -345,7 +319,8 @@ class AppComponent extends React.Component {
         inverse={this.inverse(index)}
         center={this.center(index)}
       />);
-    }.bind(this));    //函数当参数时想读取父级的context必须绑定this
+    });
+    // imageDatas.forEach(function (currValue, index) {}.bind(this));    //函数当参数时想读取父级的context必须绑定this
     return (
       <section className="stage" ref="stage">
         <section className="img-sec">
