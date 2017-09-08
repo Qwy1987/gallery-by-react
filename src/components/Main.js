@@ -16,6 +16,16 @@ imageDatas = (function getImageURL(imageDataArr) {
   return imageDataArr;
 })(imageDatas);
 
+//生成区间内的一个随机数
+function getRangeRandom(low, high) {
+  return Math.floor(Math.random() * (high - low) + low);
+}
+
+//生成0-30度之间的任意一个正负随机值
+function get30DegRandom() {
+  return ((Math.random() > 0.5 ? '' : '-') + Math.ceil(Math.random() * 30));
+}
+
 //构建单个图片的组件结构类
 //注意stateless component can not use refs
 class ImgFigure extends React.Component {
@@ -44,7 +54,7 @@ class ImgFigure extends React.Component {
 
     //如果图片的旋转角度有值并且不为0，添加旋转角度
     if (rotate) {
-      //添加兼容浏览器的厂商前缀
+      //添加兼容浏览器的厂商前缀 内联样式的写法必须是驼峰命名方式
       ['Moz', 'Ms', 'Webkit', ''].forEach(function (currValue) {
         styleObj[currValue + 'Transform'] = 'rotate(' + rotate + 'deg)';
       });
@@ -58,7 +68,7 @@ class ImgFigure extends React.Component {
     imgFigureClassName += isInverse ? ' is-inverse' : '';
     return (
       <figure className={imgFigureClassName} style={styleObj} onClick={this.handleClick}>
-        <img src={imageURL} alt={title}/>
+        <img className="gallery-img" src={imageURL} alt={title}/>
         <figcaption>
           <h2 className="img-title">{title}</h2>
           <div className="img-back" onClick={this.handleClick}>
@@ -70,14 +80,41 @@ class ImgFigure extends React.Component {
   }
 }
 
-//生成区间内的一个随机数
-function getRangeRandom(low, high) {
-  return Math.ceil(Math.random() * (high - low) + low);
-}
+//控制组件
+class ControllerUnit extends React.Component {
+  constructor(props) {
+    super(props);
+    this.handleClick = this.handleClick.bind(this);
+  }
 
-//生成0-30度之间的任意一个正负随机值
-function get30DegRandom() {
-  return ((Math.random() > 0.5 ? '' : '-') + Math.ceil(Math.random() * 30));
+  handleClick(event) {
+    const {isCenter, inverse, center}=this.props;
+    //点击已经居中的图片 执行一次翻转
+    //点击的是非居中的图片 让该图片居中
+    if (isCenter) {
+      inverse();
+    } else {
+      center();
+    }
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  render() {
+    const {isInverse, isCenter}=this.props;
+    let controllerUnitClassName = 'controller-unit';
+    //如果当前按钮对应的是居中的图片 显示居中样式 放大
+    if (isCenter) {
+      controllerUnitClassName += ' is-center';
+      //如果当前按钮来对应正在翻转的图片 显示翻转样式 翻转动画
+      if (isInverse) {
+        controllerUnitClassName += ' is-inverse';
+      }
+    }
+    return (
+      <span className={controllerUnitClassName} onClick={this.handleClick}/>
+    );
+  }
 }
 
 //构建主组件AppComponent 他将包含所有其他组件
@@ -133,6 +170,7 @@ class AppComponent extends React.Component {
    * 图片翻转
    * @param index 输入当前执行inverse操作的图片对应的图片信息数组的index值
    * @returns {Function} 这是一个闭包函数，其内return一个真正被执行的函数
+   * 可将index参数保留下来
    * */
   inverse(index) {
     return () => {
@@ -145,13 +183,13 @@ class AppComponent extends React.Component {
   }
 
   /*
-   * 利用rearrange函数， 居中对应index的图片
+   * 利用reArrange函数， 居中对应index的图片
    * @param index, 需要被居中的图片对应的图片信息数组的index值
    * @returns {Function}
    */
   center(index) {
     return () => {
-      this.rearrange(index);
+      this.reArrange(index);
     }
   }
 
@@ -159,7 +197,7 @@ class AppComponent extends React.Component {
    * 重新布局所有图片
    * @param centerIndex 指定居中排布哪个图片
    * */
-  rearrange(centerIndex) {
+  reArrange(centerIndex) {
     //获取当前的数据对象
     const {centerPos, hPosRange, vPosRange, imgsArrangeArr}=this.state;
     const hPosRangeLeftSecX = hPosRange.leftSecX,
@@ -179,12 +217,12 @@ class AppComponent extends React.Component {
 
     //设置上侧图片的状态信息
     let imgsArrangeTopArr,//上侧分布图片数据
-      topImgNum = Math.ceil(Math.random() * 2), //取0 或者1 上侧放一张图片或者不放
+      topImgNum = Math.floor(Math.random() * 2), //取0 或者1 上侧放一张图片或者不放
       topImgSpliceIndex;//上侧图片的索引值 从数组对象中的哪个位置拿到的
 
 
     //取出要布局在上侧的图片的状态信息
-    topImgSpliceIndex = Math.ceil(Math.random() * imgsArrangeArr.length - topImgNum);
+    topImgSpliceIndex = Math.floor(Math.random() * imgsArrangeArr.length - topImgNum);
     imgsArrangeTopArr = imgsArrangeArr.splice(topImgSpliceIndex, topImgNum);
 
     //布局位于上侧的图片
@@ -265,7 +303,7 @@ class AppComponent extends React.Component {
       hPosRange,
       vPosRange
     }, function () {
-      this.rearrange(0);//默认指定第一张在中心位置
+      this.reArrange(0);//默认指定第一张在中心位置
     });
   }
 
@@ -287,14 +325,23 @@ class AppComponent extends React.Component {
       }
       //填充ImgFigure组件并且追加到imgFigures数组中
       //数组数据必须增加key属性
+      const {pos, rotate, isInverse, isCenter}=  this.state.imgsArrangeArr[index];
       imgFigures.push(<ImgFigure
         {...currValue}
         key={index}
         ref={'imgFigure' + index}
-        pos={this.state.imgsArrangeArr[index].pos}
-        rotate={this.state.imgsArrangeArr[index].rotate}
-        isInverse={this.state.imgsArrangeArr[index].isInverse}
-        isCenter={this.state.imgsArrangeArr[index].isCenter}
+        pos={pos}
+        rotate={rotate}
+        isInverse={isInverse}
+        isCenter={isCenter}
+        inverse={this.inverse(index)}
+        center={this.center(index)}
+      />);
+      controllerUnits.push(<ControllerUnit
+        {...currValue}
+        key={index}
+        isInverse={isInverse}
+        isCenter={isCenter}
         inverse={this.inverse(index)}
         center={this.center(index)}
       />);

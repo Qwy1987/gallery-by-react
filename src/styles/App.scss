@@ -1,3 +1,11 @@
+@charset "utf-8";
+$imgWidth: 240px;
+$imgHeight: 240px;
+$imgFigurePadding: 40px;
+$imgFigureWidth: $imgWidth+$imgFigurePadding*2;
+$imgFigureHeight: $imgHeight+$imgFigurePadding*3;
+$controllerUnitSize: 30px;
+
 @font-face {
   font-family: "icons-turn-arrow";
   src: url("../fonts/icons/turn-arrow.eot") format("embedded-opentype"), url("../fonts/icons/turn-arrow.woff") format("woff"), url("../fonts/icons/turn-arrow.ttf") format("truetype"), url("../fonts/icons/turn-arrow.svg") format("svg");
@@ -31,6 +39,8 @@ html, body {
   height: 100%;
   overflow: hidden;
   background-color: #ddd;
+  //perspective 属性定义 3D 元素距视图的距离，以像素计。
+  //当为元素定义 perspective 属性时，其子元素会获得透视效果，而不是元素本身。
   perspective: 1800px;
   //@at-root:该指令会将包含的样式代码提高到和.img-sec平级
   //这是为了.img-figure的可移植性考虑
@@ -38,22 +48,27 @@ html, body {
     .img-figure {
       position: absolute;
 
-      width: 320px;
-      height: 360px;
+      width: $imgFigureWidth;
+      height: $imgFigureHeight;
       margin: 0;
-      padding: 40px;
+      padding: $imgFigurePadding;
 
       background-color: #ffffff;
 
       box-sizing: border-box;
       //transform-origin: x-axis y-axis z-axis;
       cursor: pointer;
-      transform-origin: 0 50% 0;
+      transform-origin: 0 50% 0; //视觉上沿左侧边缘
       transform-style: preserve-3d;
       transition: transform .6s ease-in-out, left .6s ease-in-out, top .6s ease-in-out;
 
       &.is-inverse {
-        transform: translate(320px) rotateY(180deg);
+        //沿x轴移动自身宽度 沿y轴转180度 产生抖动效果
+        transform: translate($imgFigureWidth) rotateY(180deg);
+      }
+      .gallery-img {
+        width: $imgWidth;
+        height: $imgHeight;
       }
     }
 
@@ -82,6 +97,7 @@ html, body {
         background-color: #fff;
 
         box-sizing: border-box;
+        // translateZ(1px)可以兼容safari中的翻转后背面被前面所遮盖的bug
         transform: rotateY(180deg) translateZ(1px);
         backface-visibility: hidden;
 
@@ -110,8 +126,8 @@ html, body {
     .controller-unit {
       display: inline-block;
       margin: 0 5px;
-      width: 30px;
-      height: 30px;
+      width: $controllerUnitSize;
+      height: $controllerUnitSize;
 
       text-align: center;
       vertical-align: middle;
@@ -122,7 +138,7 @@ html, body {
 
       transform: scale(.5);
       transition: transform .6s ease-in-out, background-color .3s;
-
+      //中心状态按钮有由小到大的放大效果
       &.is-center {
         background-color: #888;
 
@@ -132,14 +148,15 @@ html, body {
           color: #fff;
           font-family: "icons-turn-arrow";
           font-size: 80%;
-          line-height: 30px;
+          line-height: $controllerUnitSize;
 
           content: "\e600";
 
+          //抗锯齿 让图标字体更清晰
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
-
+        //翻转状态按钮自身沿y轴旋转
         &.is-inverse {
           background-color: #555;
 
